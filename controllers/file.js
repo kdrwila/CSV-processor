@@ -1,52 +1,80 @@
+// Load model
 const File = require('../models/File');
 
+// file upload handler and settings.
 const multer = require('multer');
 const storage = multer.diskStorage({
     destination: function (req, file, callback) {
         callback(null, './tmp/uploads');
     },
-    filename: function(req, file, callback) {
+    filename: function (req, file, callback) {
         const fileName = file.originalname.split('.');
         callback(null, fileName[0] + '-' + Date.now() + '.' + fileName[fileName.length - 1]);
     }
 });
 const upload = multer({storage}).single('file');
 
-const fileProcessQueue = require('../service/fileProcessQueue');
+// files processing queue
+const fileProcessQueue = require('../service/jobQueue/fileProcess');
 
 function FileCtrl() {
     return {
-        upload: function (params, cb) {
-            let pto = {};
+        upload: function (params, callback) {
+            let output = {};
 
-            upload(params.req, params.res, function(err) {
-                if(err) {
-                    pto.error = "Error while uploading the file.";
-                    pto.details = err;
-                    return cb(pto);
+            upload(params.req, params.res, function (err) {
+                // handle error to output.
+                if (err) {
+                    return callback({
+                        error: "Error while uploading the file.",
+                        details: err
+                    });
                 }
-                pto.success = "File uploaded.";
+
+                // save success message.
+                output.success = "File uploaded.";
                 const file = params.req.file;
+                if (!file) {
+                    return callback({
+                        error: "No file was uploaded!",
+                        status: 400
+                    });
+                }
 
-                let savedFile = new File();
-                savedFile.fileName = file.filename;
-                savedFile.type = 'csv';
+                // create new object
+                let newFile = new File();
+                newFile.fileName = file.filename;
+                newFile.type = 'csv';
 
-                savedFile.save(function(err, object) {
-                    if(err) throw err;
+                // save file object
+                newFile.save(function (err, object) {
+                    if (err) throw err;
 
-                    pto.file = object;
-                    fileProcessQueue.add('process',{file, savedFile});
+                    // pass file object with link
+                    output.file = object;
+                    output.file.links = {
+                        current: "/api/file/" + newFile.id
+                    };
 
-                    cb(pto);
+                    // add file process task to queue
+                    fileProcessQueue.add('process', {file, newFile});
+
+                    callback(output);
                 });
             });
         },
-        preview: function(params, cb) {
-            let file = File.find({_id: params.req.params.id}, (err, file) => {
-                if(err) throw err;
+        preview: function (params, callback) {
+            File.find({_id: params.req.params.id}, (err, file) => {
+                // handle error to output
+                if (err) {
+                    return callback({
+                        error: "Error while getting the file object.",
+                        details: err
+                    });
+                }
 
-                cb(file);
+                // return file
+                callback(file);
             });
         }
     }
