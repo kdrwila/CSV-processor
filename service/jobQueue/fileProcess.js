@@ -72,7 +72,7 @@ fileProcess.process('process', true, async (job, done) => {
 /* helper methods */
 let reportProgress = function (job, percents, id) {
     const io = require('../../utils/io').io();
-    progress += value;
+    progress += percents;
 
     job.progress(progress);
     io.emit('fileProcessProgress', {progress: progress, id: id});

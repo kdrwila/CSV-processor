@@ -52,12 +52,12 @@ function FileCtrl() {
 
                     // pass file object with link
                     output.file = object;
-                    output.file.links = {
+                    output.links = {
                         current: "/api/file/" + newFile.id
                     };
 
                     // add file process task to queue
-                    fileProcessQueue.add('process', {file, newFile});
+                    fileProcessQueue.add('process', {file, savedFile: newFile});
 
                     callback(output);
                 });
