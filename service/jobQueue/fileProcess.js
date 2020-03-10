@@ -43,7 +43,8 @@ fileProcess.process('process', true, async (job, done) => {
         const params = {
             Bucket: process.env.AWS_S3_BUCKET_NAME,
             Key: file.filename,
-            Body: JSON.stringify(data, null, 2)
+            Body: JSON.stringify(data, null, 2),
+            ACL: 'public-read'
         };
 
         // upload file to aws s3 bucket
@@ -65,7 +66,7 @@ fileProcess.process('process', true, async (job, done) => {
 
             reportProgress(job, 20, savedFile._id.toString());
             done();
-        })
+        });
     });
 });
 
